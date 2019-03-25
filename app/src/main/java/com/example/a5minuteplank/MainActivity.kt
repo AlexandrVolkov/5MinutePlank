@@ -14,14 +14,17 @@ class MainActivity : AppCompatActivity() {
     val sequence: IntArray  = intArrayOf(0,1,2,2,3,3,0,1)
     val timingProportion: IntArray = intArrayOf(0,2,3,4,5,6,7,8)
     val activities: IntArray = intArrayOf(0,1,2,3)
-    var currentActivity: Int = 500
+    var currentActivity: Int = 0
+    var currentActivityIndex: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val countDownInterval: Long = 1000
         startButton.setOnClickListener {
-            exerciseDurationInSec = (exerciseDuration as TextView).text.toString().toLong()
+            exerciseDurationInSec = exerciseDuration.text.toString().toLong()
+            currentActivity = 0
+            currentActivityIndex = 0
             timer(exerciseDurationInSec * 1000, countDownInterval).start()
             it.isEnabled = false
         }
@@ -31,15 +34,27 @@ class MainActivity : AppCompatActivity() {
         return object: CountDownTimer(millisInFuture,countDownInterval){
             override fun onTick(millisUntilFinished: Long){
                 val timeRemainingInSec: Long = millisUntilFinished / 1000
-                val calculatedActivity: Int = calculateCurrentActivity(timeRemainingInSec)
-                if (currentActivity != calculatedActivity) {
+                exerciseDuration.setText(timeRemainingInSec.toString())
+                val calculatedActivityIndex: Int = calculateCurrentActivityIndex(timeRemainingInSec)
+                val calculatedActivity: Int = sequence[calculatedActivityIndex]
+                if (currentActivityIndex != calculatedActivityIndex && calculatedActivity == currentActivity) {
+                    currentActivityIndex = calculatedActivityIndex
+                    infoText.setText("Switch side")
+                }
+                if (calculatedActivity != currentActivity) {
+                    infoText.setText("")
                     currentActivity = calculatedActivity
                     switchActivity()
+                }
+                if (currentActivityIndex != calculatedActivityIndex) {
+                    currentActivityIndex = calculatedActivityIndex
                 }
             }
 
             override fun onFinish() {
                 startButton.isEnabled = true
+                exerciseDuration.setText(exerciseDurationInSec.toString())
+                showActivity(0);
             }
         }
     }
@@ -48,15 +63,17 @@ class MainActivity : AppCompatActivity() {
         showActivity(currentActivity)
     }
 
-    private fun calculateCurrentActivity(timeRemainingInSec: Long): Int{
-        val currentProportionNumber: Long = (exerciseDurationInSec - timeRemainingInSec)/10
-        var savedIndex: Int = 0
+    private fun calculateCurrentActivityIndex(timeRemainingInSec: Long): Int{
+        val weight: Long = exerciseDurationInSec/10
+        val currentProportionNumber: Long = (exerciseDurationInSec - timeRemainingInSec)/weight
+
+        var savedIndex = 0
         for((index: Int, value: Int) in timingProportion.withIndex()) {
             if (currentProportionNumber >= value) {
                 savedIndex = index
             }
         }
-        return sequence[savedIndex]
+        return savedIndex
     }
 
     private fun showActivity(activityId: Int){
